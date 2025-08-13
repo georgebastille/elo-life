@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import MobileNav from "./components/MobileNav";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,7 +28,20 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        {/* Mobile top navigation (hamburger) */}
+        <MobileNav />
+
+        <div className="min-h-screen flex">
+          <aside className="w-64 shrink-0 border-r border-black/10 dark:border-white/10 p-4 hidden sm:block">
+            <div className="text-lg font-semibold mb-4">Elo Life</div>
+            <nav className="space-y-2">
+              <a className="block px-3 py-2 rounded hover:bg-black/5 dark:hover:bg-white/10" href="/">Vote</a>
+              <a className="block px-3 py-2 rounded hover:bg-black/5 dark:hover:bg-white/10" href="/add">Add Rule</a>
+              <a className="block px-3 py-2 rounded hover:bg-black/5 dark:hover:bg-white/10" href="/leaderboard">Leaderboard</a>
+            </nav>
+          </aside>
+          <main className="flex-1 p-4">{children}</main>
+        </div>
       </body>
     </html>
   );
