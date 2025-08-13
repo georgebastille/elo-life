@@ -1,4 +1,4 @@
-import { getProvider, getSqlite, pg } from "@/db/client";
+import { getProvider, getSqlite, pg, ensurePgSchema } from "@/db/client";
 import { MatchesRepository, RuleRow, RulesRepository } from "./types";
 import crypto from "node:crypto";
 
@@ -62,6 +62,7 @@ class SqliteRulesRepo implements RulesRepository {
 
 class PostgresRulesRepo implements RulesRepository {
   async create(text: string): Promise<RuleRow> {
+    await ensurePgSchema();
     const id = crypto.randomUUID();
     const { rows } = await pg`
       INSERT INTO rules (id, text, rating, games_played, is_active)
@@ -71,11 +72,13 @@ class PostgresRulesRepo implements RulesRepository {
     return { ...r, is_active: !!r.is_active } as RuleRow;
   }
   async findById(id: string): Promise<RuleRow | null> {
+    await ensurePgSchema();
     const { rows } = await pg`SELECT id, text, rating, games_played, is_active FROM rules WHERE id = ${id}`;
     const r = rows[0];
     return r ? ({ ...r, is_active: !!r.is_active } as RuleRow) : null;
   }
   async findByTextNormalized(normText: string): Promise<RuleRow | null> {
+    await ensurePgSchema();
     const { rows } = await pg`
       SELECT id, text, rating, games_played, is_active
       FROM rules
@@ -84,6 +87,7 @@ class PostgresRulesRepo implements RulesRepository {
     return r ? ({ ...r, is_active: !!r.is_active } as RuleRow) : null;
   }
   async listOrdered(limit: number, offset: number): Promise<RuleRow[]> {
+    await ensurePgSchema();
     const { rows } = await pg`
       SELECT id, text, rating, games_played, is_active
       FROM rules WHERE is_active = true
@@ -92,16 +96,19 @@ class PostgresRulesRepo implements RulesRepository {
     return rows.map((r) => ({ ...r, is_active: !!r.is_active } as RuleRow));
   }
   async incrementGames(ids: string[]): Promise<void> {
+    await ensurePgSchema();
     for (const id of ids) {
       await pg`UPDATE rules SET games_played = games_played + 1 WHERE id = ${id}`;
     }
   }
   async updateRatings(rows: { id: string; rating: number }[]): Promise<void> {
+    await ensurePgSchema();
     for (const r of rows) {
       await pg`UPDATE rules SET rating = ${r.rating} WHERE id = ${r.id}`;
     }
   }
   async candidatePool(size: number): Promise<Pick<RuleRow, 'id' | 'text' | 'rating'>[]> {
+    await ensurePgSchema();
     const { rows } = await pg`
       SELECT id, text, rating FROM rules WHERE is_active = true
       ORDER BY games_played ASC, created_at ASC

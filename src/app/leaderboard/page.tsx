@@ -1,5 +1,8 @@
 import { getRulesRepository } from "@/db/repositories/rulesRepo";
 
+// Avoid static prerender at build time; fetch from DB on request
+export const dynamic = "force-dynamic";
+
 export default async function LeaderboardPage() {
   const repo = getRulesRepository();
   const rules = await repo.listOrdered(100, 0);

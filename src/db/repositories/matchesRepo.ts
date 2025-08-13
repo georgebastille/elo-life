@@ -1,4 +1,4 @@
-import { getProvider, getSqlite, pg } from "@/db/client";
+import { getProvider, getSqlite, pg, ensurePgSchema } from "@/db/client";
 import { MatchesRepository } from "./types";
 
 class SqliteMatchesRepo implements MatchesRepository {
@@ -12,6 +12,7 @@ class SqliteMatchesRepo implements MatchesRepository {
 
 class PostgresMatchesRepo implements MatchesRepository {
   async insert(args: { ruleAId: string; ruleBId: string; winnerId: string; delta: number }): Promise<void> {
+    await ensurePgSchema();
     await pg`
       INSERT INTO matches (rule_a_id, rule_b_id, winner_id, delta)
       VALUES (${args.ruleAId}, ${args.ruleBId}, ${args.winnerId}, ${args.delta})`;
@@ -21,4 +22,3 @@ class PostgresMatchesRepo implements MatchesRepository {
 export function getMatchesRepository(): MatchesRepository {
   return getProvider() === 'postgres' ? new PostgresMatchesRepo() : new SqliteMatchesRepo();
 }
-

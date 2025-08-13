@@ -50,3 +50,59 @@ export function getSqlite() {
 
 // Postgres sql tag re-export for convenience
 export const pg = sql;
+
+// Ensure Postgres schema exists (idempotent, run-once per process)
+let pgSchemaPromise: Promise<void> | null = null;
+export function ensurePgSchema(): Promise<void> {
+  if (getProvider() !== 'postgres') return Promise.resolve();
+  if (pgSchemaPromise) return pgSchemaPromise;
+  pgSchemaPromise = (async () => {
+    // Create tables if not exist
+    await pg`CREATE TABLE IF NOT EXISTS rules (
+      id UUID PRIMARY KEY,
+      text TEXT NOT NULL UNIQUE,
+      rating INTEGER NOT NULL DEFAULT 100000,
+      games_played INTEGER NOT NULL DEFAULT 0,
+      is_active BOOLEAN NOT NULL DEFAULT TRUE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )`;
+
+    await pg`CREATE TABLE IF NOT EXISTS matches (
+      id BIGSERIAL PRIMARY KEY,
+      rule_a_id UUID NOT NULL REFERENCES rules(id) ON DELETE CASCADE,
+      rule_b_id UUID NOT NULL REFERENCES rules(id) ON DELETE CASCADE,
+      winner_id UUID NOT NULL REFERENCES rules(id) ON DELETE CASCADE,
+      delta INTEGER NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )`;
+
+    // Create updated_at trigger function if missing, then trigger
+    await pg`DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_proc WHERE proname = 'set_updated_at'
+      ) THEN
+        CREATE OR REPLACE FUNCTION set_updated_at()
+        RETURNS TRIGGER AS $$
+        BEGIN
+          NEW.updated_at := NOW();
+          RETURN NEW;
+        END;
+        $$ LANGUAGE plpgsql;
+      END IF;
+    END$$`;
+
+    await pg`DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_trigger WHERE tgname = 'rules_updated_at'
+      ) THEN
+        CREATE TRIGGER rules_updated_at
+        BEFORE UPDATE ON rules
+        FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+      END IF;
+    END$$`;
+  })();
+  return pgSchemaPromise;
+}
