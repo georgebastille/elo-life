@@ -1,11 +1,20 @@
-import { getRulesRepository } from "@/db/repositories/rulesRepo";
-
-// Avoid static prerender at build time; fetch from DB on request
+// Fetch through the API to ensure consistent runtime and no build-time DB access
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const runtime = "nodejs";
+
+import { headers } from "next/headers";
 
 export default async function LeaderboardPage() {
-  const repo = getRulesRepository();
-  const rules = await repo.listOrdered(100, 0);
+  const h = await headers();
+  const host = h.get("x-forwarded-host") || h.get("host") || "";
+  const protoHeader = h.get("x-forwarded-proto");
+  const protocol = protoHeader || (process.env.VERCEL ? "https" : "http");
+  const base = host ? `${protocol}://${host}` : "";
+  const url = `${base}/api/leaderboard?limit=100`;
+  const res = await fetch(url, { cache: "no-store" });
+  const data = (await res.json().catch(() => ({ rules: [] }))) as { rules: { id: string; text: string; rating: number; games_played: number }[] };
+  const rules = Array.isArray(data.rules) ? data.rules : [];
   return (
     <div className="max-w-3xl mx-auto">
       <h1 className="text-2xl font-semibold mb-4">Leaderboard</h1>
