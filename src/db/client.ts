@@ -77,32 +77,20 @@ export function ensurePgSchema(): Promise<void> {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )`;
 
-    // Create updated_at trigger function if missing, then trigger
-    await pg`DO $$
-    BEGIN
-      IF NOT EXISTS (
-        SELECT 1 FROM pg_proc WHERE proname = 'set_updated_at'
-      ) THEN
-        CREATE OR REPLACE FUNCTION set_updated_at()
-        RETURNS TRIGGER AS $$
-        BEGIN
-          NEW.updated_at := NOW();
-          RETURN NEW;
-        END;
-        $$ LANGUAGE plpgsql;
-      END IF;
-    END$$`;
+    // Create or replace updated_at trigger function (idempotent)
+    await pg`CREATE OR REPLACE FUNCTION set_updated_at()
+      RETURNS TRIGGER AS $fn$
+      BEGIN
+        NEW.updated_at := NOW();
+        RETURN NEW;
+      END;
+      $fn$ LANGUAGE plpgsql;`;
 
-    await pg`DO $$
-    BEGIN
-      IF NOT EXISTS (
-        SELECT 1 FROM pg_trigger WHERE tgname = 'rules_updated_at'
-      ) THEN
-        CREATE TRIGGER rules_updated_at
-        BEFORE UPDATE ON rules
-        FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-      END IF;
-    END$$`;
+    // Ensure trigger exists (drop if exists, then create)
+    await pg`DROP TRIGGER IF EXISTS rules_updated_at ON rules;`;
+    await pg`CREATE TRIGGER rules_updated_at
+      BEFORE UPDATE ON rules
+      FOR EACH ROW EXECUTE FUNCTION set_updated_at();`;
   })();
   return pgSchemaPromise;
 }
