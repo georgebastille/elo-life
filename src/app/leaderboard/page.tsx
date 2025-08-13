@@ -3,18 +3,17 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const runtime = "nodejs";
 
-import { headers } from "next/headers";
+import { getRulesRepository } from "@/db/repositories/rulesRepo";
 
 export default async function LeaderboardPage() {
-  const h = await headers();
-  const host = h.get("x-forwarded-host") || h.get("host") || "";
-  const protoHeader = h.get("x-forwarded-proto");
-  const protocol = protoHeader || (process.env.VERCEL ? "https" : "http");
-  const base = host ? `${protocol}://${host}` : "";
-  const url = `${base}/api/leaderboard?limit=100`;
-  const res = await fetch(url, { cache: "no-store" });
-  const data = (await res.json().catch(() => ({ rules: [] }))) as { rules: { id: string; text: string; rating: number; games_played: number }[] };
-  const rules = Array.isArray(data.rules) ? data.rules : [];
+  // Fetch directly from the repository on the server to avoid URL issues
+  const repo = getRulesRepository();
+  let rules: { id: string; text: string; rating: number; games_played: number }[] = [];
+  try {
+    rules = await repo.listOrdered(100, 0);
+  } catch {
+    rules = [];
+  }
   return (
     <div className="max-w-3xl mx-auto">
       <h1 className="text-2xl font-semibold mb-4">Leaderboard</h1>
