@@ -106,7 +106,7 @@ class PostgresRulesRepo implements RulesRepository {
       SELECT id, text, rating FROM rules WHERE is_active = true
       ORDER BY games_played ASC, created_at ASC
       LIMIT ${size}`;
-    return rows as any;
+    return rows as Pick<RuleRow, 'id' | 'text' | 'rating'>[];
   }
 }
 

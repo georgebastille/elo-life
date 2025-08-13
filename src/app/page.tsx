@@ -18,8 +18,8 @@ export default function Home() {
       if (!res.ok) throw new Error("Failed to load pair");
       const data = (await res.json()) as PairResponse;
       setPair(data);
-    } catch (e: any) {
-      setError(e.message || "Error");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Error");
     } finally {
       setLoading(false);
     }
@@ -37,7 +37,7 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ winnerId, loserId }),
       });
-    } catch (e) {
+    } catch {
       // ignore for now; still try to load next
     } finally {
       await loadPair();

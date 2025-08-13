@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import MobileNav from "./components/MobileNav";
+import Link from "next/link";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,9 +36,9 @@ export default function RootLayout({
           <aside className="w-64 shrink-0 border-r border-black/10 dark:border-white/10 p-4 hidden sm:block">
             <div className="text-lg font-semibold mb-4">Elo Life</div>
             <nav className="space-y-2">
-              <a className="block px-3 py-2 rounded hover:bg-black/5 dark:hover:bg-white/10" href="/">Vote</a>
-              <a className="block px-3 py-2 rounded hover:bg-black/5 dark:hover:bg-white/10" href="/add">Add Rule</a>
-              <a className="block px-3 py-2 rounded hover:bg-black/5 dark:hover:bg-white/10" href="/leaderboard">Leaderboard</a>
+              <Link className="block px-3 py-2 rounded hover:bg-black/5 dark:hover:bg-white/10" href="/">Vote</Link>
+              <Link className="block px-3 py-2 rounded hover:bg-black/5 dark:hover:bg-white/10" href="/add">Add Rule</Link>
+              <Link className="block px-3 py-2 rounded hover:bg-black/5 dark:hover:bg-white/10" href="/leaderboard">Leaderboard</Link>
             </nav>
           </aside>
           <main className="flex-1 p-4">{children}</main>

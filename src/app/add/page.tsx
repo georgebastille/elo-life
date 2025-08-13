@@ -29,8 +29,8 @@ export default function AddRulePage() {
       }
       setText("");
       setMsg("Rule added! You can return to voting.");
-    } catch (e: any) {
-      setErr(e.message || "Error");
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : "Error");
     } finally {
       setLoading(false);
     }
@@ -66,4 +66,3 @@ export default function AddRulePage() {
     </div>
   );
 }
-
